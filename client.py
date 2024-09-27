@@ -67,7 +67,8 @@ def send_data():
         data_for_esp32 = data_queue.get() # get processed data from queue
         #data_for_esp32 = f"{data_test}"
         V_for_esp32 = DI(60, 140, int(data_for_esp32))
-        s_esp32.sendall(f"{V_for_esp32}\n".encode('utf-8'))  # here need to convert the float 'v_for_esp32' to a string and then encode it to UTF-8 before sending it
+        s_esp32.sendall(f"{V_for_esp32}\n".encode('utf-8')) 
+         # here need to convert the float 'v_for_esp32' to a string and then encode it to UTF-8 before sending it
         data_queue.task_done()
         logging.info(f"{V_for_esp32}")
         if keyboard.is_pressed("esc"):
@@ -75,37 +76,6 @@ def send_data():
     
     s_esp32.close()
 
-'''
-# distance visualization
-window_name = 'distance visualization'
-width, height = 640, 480
-max_distance = 200
-history_length = 50
-
-distannce_history = [] # empty list to store value
-img = np.zeros((height, width, 3), dtype= np.uint8) # blank image to draw on
-
-def updata_image(distance):
-    global distannce_history, img
-
-    distannce_history.append(distance)
-    if len(distannce_history) > history_length:
-        distannce_history.pop(0)
-
-    img.fill(0)
-
-    for i in range(1, len(distannce_history)):  
-        # this loop starts from the second element(index 1) and goes through each element in the 'distance_history' list
-        # as we are going to draw a line between the previous point(index'i-1') and the current point(index'i')
-        pt1 = (int((i-1)*(width/history_length)), height- int((distannce_history[i-1]/max_distance)*height))
-        pt2 = (int(i*(width/history_length)), height-int((distannce_history[i]/ max_distance)*height))
-        cv2.line(img, pt1, pt2, (0,255,0), 2)
-    
-    cv2.imshow(window_name, img)
-    cv2.waitKey(1)
-
-cv2.namedWindow(window_name)
-'''
 '''
 while True:
     
