@@ -17,7 +17,7 @@ class Vlz:
 
     def updata_image(self, distance):
         # global self.distance_history
-        distance_history = self.distance_history.append(distance)
+        self.distance_history.append(distance)
          
         if len(self.distance_history) > self.history_length:
             self.distance_history.pop(0)
@@ -26,11 +26,15 @@ class Vlz:
 
         # draw the distance history as a line graph
         for i in range(1, len(self.distance_history)):
+            # pt1 and pt2 are consecutive, pt1 created from [i-1], pt2 created from [i]. by starting the loop from 1, the
+            # code can safely use both [i-1] and [i]
+            # first num is x axis
+            # sec num is y axis, in image coordinates, larger y values actually go down, so we should substract it from height
             pt1 = (int((i-1)* (self.width / self.history_length)), 
                    self.height - int((self.distance_history[i - 1] / self.max_distance)* self.height))
             pt2 = (int(i* (self.width / self.history_length)),
                    self.height - int((self.distance_history[i] / self.max_distance)* self.height))
-            cv2.line(self.img, pt1, pt2, (0, 255, 0), 2)
+            cv2.line(self.img, pt1, pt2, (255, 192, 203), 2)
 
         cv2.imshow(self.window_name, self.img)
         cv2.waitKey(1)
@@ -48,7 +52,7 @@ for i in range(100):
     time.sleep(0.1)
 
 visualizer.close_window()
-        
+
              
 
 
