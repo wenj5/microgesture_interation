@@ -45,11 +45,19 @@ class Vlz:
 
 
 # test code
-visualizer = Vlz()
-for i in range(100):
-    distance_test = np.random.randint(0, 200)
-    visualizer.updata_image(distance_test)
-    time.sleep(0.1)
+while True:
+    visualizer = Vlz()
+    for i in range(100):
+        distance_test = np.random.randint(0, 200)
+        visualizer.updata_image(distance_test)
+        time.sleep(0.1)
+        key = cv2.waitKey(100)& 0xFF
+        if key == 27:  # ESC to close the window
+            visualizer.close_window()
+            break  # break for-loop
+
+    if cv2.getWindowProperty(visualizer.window_name, cv2.WND_PROP_VISIBLE) <1:
+        break # break whiletrue-loop
 
 visualizer.close_window()
 
