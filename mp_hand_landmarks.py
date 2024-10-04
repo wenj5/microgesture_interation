@@ -1,5 +1,7 @@
 import cv2
 import mediapipe as mp
+import mapping
+import numpy as np
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -9,7 +11,6 @@ hands = mp_hands.Hands(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5)
 mp_drawing = mp.solutions.drawing_utils
-
 # Start capturing video from webcam
 cap = cv2.VideoCapture(0)
 
@@ -19,13 +20,9 @@ while cap.isOpened():
         print("Ignoring empty camera frame.")
         continue
 
-    # Convert the BGR image to RGB
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
     # Process the image and find hands
     results = hands.process(image)
-
-    # Convert the image color back so it can be displayed
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
     # Check if hand landmarks are detected
@@ -34,14 +31,17 @@ while cap.isOpened():
             # Draw the hand landmarks
             mp_drawing.draw_landmarks(
                 image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            print(hand_landmarks)
             
             # Get landmark positions
+            landmarks_m = np.zeros((21, 3))
             for id, lm in enumerate(hand_landmarks.landmark):
-                h, w, c = image.shape
-                cx, cy = int(lm.x * w), int(lm.y * h)
-                cz = lm.z
-                print(f"Landmark {id}: ({cx}, {cy}, {cz:.4f})")
-
+                #h, w, c = image.shape
+                #cx, cy = int(lm.x * w), int(lm.y * h)
+                #cz = lm.z
+                landmarks_m[id] = [lm.x, lm.y, lm.z] 
+                print(landmarks_m)
+                print("\n")
     # Flip the image horizontally for a selfie-view display
     image = cv2.flip(image, 1)
 
