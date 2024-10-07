@@ -29,3 +29,17 @@ class map:
         return a
     
 
+def transform_coordinates(landmarks):
+    '''
+    transform hand landmarks to a coordinate system with the wrist as origin
+    '''
+    landmark_array= np.array([[lm.x, lm.y, lm.z] for lm in landmarks])
+    wrist = landmark_array[0]
+    transformed_landmarks = landmark_array - wrist
+    scale_factor = 1/ (np.max(np.abs(transformed_landmarks)) + 1e-6) #added by 1e-6 to avoid division by zero
+    transformed_landmarks *= scale_factor
+
+    return transformed_landmarks
+
+
+

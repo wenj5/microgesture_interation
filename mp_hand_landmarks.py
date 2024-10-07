@@ -28,23 +28,13 @@ while cap.isOpened():
     # Check if hand landmarks are detected
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
-            # Draw the hand landmarks
-            mp_drawing.draw_landmarks(
-                image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-            print(hand_landmarks)
-            
-            # Get landmark positions
-            landmarks_m = np.zeros((21, 3))
-            for id, lm in enumerate(hand_landmarks.landmark):
-                #h, w, c = image.shape
-                #cx, cy = int(lm.x * w), int(lm.y * h)
-                #cz = lm.z
-                landmarks_m[id] = [lm.x, lm.y, lm.z] 
-                print(landmarks_m)
-                print("\n")
-    # Flip the image horizontally for a selfie-view display
-    image = cv2.flip(image, 1)
+            mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            transformed_c = mapping.transform_coordinates(hand_landmarks.landmark)
+            print(transformed_c)
+            print("\n")
 
+    image = cv2.flip(image, 1)
+    
     # Display the image
     cv2.imshow('MediaPipe Hands', image)
     if cv2.waitKey(5) & 0xFF == 27:  # Press 'ESC' to exit
