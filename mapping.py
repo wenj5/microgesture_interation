@@ -1,12 +1,5 @@
 import numpy as np
 
-def distance_cal(landmarks, j_id1, j_id2):
-
-    Ttip = (landmarks[j_id1] + landmarks[(j_id1-1)])/ 2
-    Itip = (landmarks[j_id2] + landmarks[(j_id2-1)])/ 2
-    distance = np.linalg.norm(Ttip - Itip)
-
-    return distance
 
 class map:
 # Vmax here can be any value which is the maximum value been controled - here is velocity
@@ -40,6 +33,15 @@ def transform_coordinates(landmarks):
     transformed_landmarks *= scale_factor
 
     return transformed_landmarks
+
+
+def distance_cal(landmarks, j_id1, j_id2):
+
+    Ttip = (landmarks[j_id1] + landmarks[(j_id1-1)])/ 2
+    Itip = (landmarks[j_id2] + landmarks[(j_id2-1)])/ 2
+    distance = np.linalg.norm(Ttip - Itip)
+
+    return distance
 
 
 

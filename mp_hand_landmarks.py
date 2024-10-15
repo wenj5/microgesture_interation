@@ -2,6 +2,18 @@ import cv2
 import mediapipe as mp
 import mapping
 import numpy as np
+from ukf import initialize_ukf
+
+INDEX_LMN = [0, 5, 6, 7, 8]
+THUMB_LMN = [0, 1, 2, 3, 4]
+MIDDLE_LMN = [0, 9, 10, 11, 12]
+RING_LMN = [0, 13, 14, 15, 16]
+PINKY_LMN = [0, 17, 18, 19, 20]
+
+#initialize variables for UKF
+ukf = None
+fps = 30
+dt = 1/ fps
 
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
@@ -24,13 +36,14 @@ while cap.isOpened():
     # Process the image and find hands
     results = hands.process(image)
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
+    
     # Check if hand landmarks are detected
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
             mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-            transformed_c = mapping.transform_coordinates(hand_landmarks.landmark)
-            print(transformed_c)
+            all_transformed_lm = mapping.transform_coordinates(hand_landmarks.landmark)
+            selected_lm = all_transformed_lm[INDEX_LMN]
+            print(selected_lm)
             print("\n")
 
     image = cv2.flip(image, 1)
