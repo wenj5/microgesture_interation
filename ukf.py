@@ -7,7 +7,7 @@ def initialize_ukf(initial_finger_state, dt):
     num_landmark = 5
     state_dim = num_landmark* 6 # for (x, y, z, x', y', z')
 
-    initial_state = np.hstack([np.array(initial_finger_state), np.zero((num_landmark, 3))])
+    initial_state = np.hstack([np.array(initial_finger_state), np.zeros((num_landmark, 3))])
     initial_state_flat = np.array(initial_state).flatten()
 
     # define sigma points

@@ -11,8 +11,9 @@ RING_LMN = [0, 13, 14, 15, 16]
 PINKY_LMN = [0, 17, 18, 19, 20]
 
 #initialize variables for UKF
+global ukf
 ukf = None
-fps = 30
+fps = 30  # checked manually
 dt = 1/ fps
 
 # Initialize MediaPipe Hands
@@ -43,8 +44,18 @@ while cap.isOpened():
             mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             all_transformed_lm = mapping.transform_coordinates(hand_landmarks.landmark)
             selected_lm = all_transformed_lm[INDEX_LMN]
-            print(selected_lm)
+            print("selected_lm", selected_lm)
             print("\n")
+
+            if ukf is None:
+                ukf = initialize_ukf(selected_lm, dt)
+            else:
+                measurement = selected_lm.flatten()
+                ukf.predict()
+                ukf.update(measurement)
+                refined_landmarks = ukf.x[0:15].reshape(5, 3)
+                print("refined landmarks:", refined_landmarks)
+
 
     image = cv2.flip(image, 1)
     
