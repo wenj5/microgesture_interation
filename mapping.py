@@ -32,7 +32,15 @@ def transform_coordinates(landmarks):
     scale_factor = 1/ (np.max(np.abs(transformed_landmarks)) + 1e-6) #added by 1e-6 to avoid division by zero
     transformed_landmarks *= scale_factor
 
-    return transformed_landmarks
+    return transformed_landmarks, scale_factor, wrist
+
+def detransform_coordinates(refined_landmarks, original_wrist, scale_factor, image_shape):
+    unscaled_landmarks = refined_landmarks / scale_factor
+    original_format_landmarks = unscaled_landmarks + original_wrist
+
+    # convert them to mediapipe landmarks format
+    mp_landmarks = []
+
 
 
 def distance_cal(landmarks, j_id1, j_id2):
