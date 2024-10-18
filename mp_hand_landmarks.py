@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import mapping
 import numpy as np
-from ukf import initialize_ukf
+from ukf import initialize_ukf, update_ukf
 
 INDEX_LMN = [0, 5, 6, 7, 8]
 THUMB_LMN = [0, 1, 2, 3, 4]
@@ -11,13 +11,55 @@ RING_LMN = [0, 13, 14, 15, 16]
 PINKY_LMN = [0, 17, 18, 19, 20]
 
 #initialize variables for UKF
-global ukf
 ukf = None
+ukf_initialized = None
 fps = 30  # checked manually
 dt = 1/ fps
 
+def initialize_ukf_once(initial_landmarks):
+    global ukf, ukf_initialized
+    if not ukf_initialized:
+        ukf = initialize_ukf(initial_landmarks, dt)
+        ukf_initialized = True
+
+def process_frame(image):
+    global ukf, ukf_initialized
+
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
+    # Process the image and find hands
+    results = hands.process(image_rgb)
+    image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+
+    # Check if hand landmarks are detected
+    if results.multi_hand_landmarks:
+        for hand_landmarks in results.multi_hand_landmarks:
+            mp_drawing.draw_landmarks(image_bgr, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            all_transformed_lm = mapping.transform_coordinates(hand_landmarks.landmark)
+            selected_lm = all_transformed_lm[INDEX_LMN]
+            print("selected_lm", selected_lm)
+            print("\n")
+
+            if selected_lm.shape != (5, 3):
+                print(f"Warning: selected_lm shape is {selected_lm.shape}, expected (5, 3)")
+                print(f"Selected landmarks: {selected_lm}")
+                return image_bgr
+
+            if not ukf_initialized:
+                initialize_ukf_once(selected_lm)
+
+            if ukf_initialized:
+                measurement = selected_lm.flatten()
+                refined_landmarks = update_ukf(ukf, measurement)
+                print("refined landmarks:", refined_landmarks)
+
+    else:
+        print("no hand landmarks detected")
+    
+    return image_bgr
+
+
 # Initialize MediaPipe Hands
-mp_hands = mp.solutions.hands
+mp_hands = mp.solutions.hands # here we access a module or a class, dont use()
 hands = mp_hands.Hands(
     static_image_mode=False,
     max_num_hands=1,
@@ -33,32 +75,9 @@ while cap.isOpened():
         print("Ignoring empty camera frame.")
         continue
 
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
-    # Process the image and find hands
-    results = hands.process(image)
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    
-    # Check if hand landmarks are detected
-    if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-            all_transformed_lm = mapping.transform_coordinates(hand_landmarks.landmark)
-            selected_lm = all_transformed_lm[INDEX_LMN]
-            print("selected_lm", selected_lm)
-            print("\n")
-
-            if ukf is None:
-                ukf = initialize_ukf(selected_lm, dt)
-            else:
-                measurement = selected_lm.flatten()
-                ukf.predict()
-                ukf.update(measurement)
-                refined_landmarks = ukf.x[0:15].reshape(5, 3)
-                print("refined landmarks:", refined_landmarks)
-
-
+    image = process_frame(image)
     image = cv2.flip(image, 1)
-    
+
     # Display the image
     cv2.imshow('MediaPipe Hands', image)
     if cv2.waitKey(5) & 0xFF == 27:  # Press 'ESC' to exit
