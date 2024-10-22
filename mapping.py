@@ -32,14 +32,28 @@ def transform_coordinates(landmarks):
     scale_factor = 1/ (np.max(np.abs(transformed_landmarks)) + 1e-6) #added by 1e-6 to avoid division by zero
     transformed_landmarks *= scale_factor
 
-    return transformed_landmarks, scale_factor, wrist
+    return transformed_landmarks, scale_factor
 
-def detransform_coordinates(refined_landmarks, original_wrist, scale_factor, image_shape):
+
+def detransform_coordinates(refined_landmarks, original_wrist, scale_factor):
+
     unscaled_landmarks = refined_landmarks / scale_factor
     original_format_landmarks = unscaled_landmarks + original_wrist
 
     # convert them to mediapipe landmarks format
     mp_landmarks = []
+    for landmark in original_format_landmarks:
+        x, y, z = landmark
+        x = np.clip(float(x), 0.0, 1.0)
+        y = np.clip(float(y), 0.0, 1.0)
+        z = float(z)
+        mp_landmarks.append(type('Landmark', (), {
+            'x': x,
+            'y': y,
+            'z': z,
+        })())
+
+    return mp_landmarks
 
 
 

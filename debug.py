@@ -40,8 +40,8 @@ def process_frame(image, frame_count):
         for hand_landmarks in results.multi_hand_landmarks:
             mp_drawing.draw_landmarks(image_bgr, hand_landmarks, mp_hands.HAND_CONNECTIONS)
             all_transformed_lm = mapping.transform_coordinates(hand_landmarks.landmark)
-            #selected_lm = np.array([all_transformed_lm[i] for i in INDEX_LMN])
-            selected_lm = all_transformed_lm[INDEX_LMN]
+            selected_lm = np.array([all_transformed_lm[i] for i in INDEX_LMN])
+            # selected_lm = all_transformed_lm[INDEX_LMN]
             
             if selected_lm.shape != (5, 3):
                 print(f"Frame {frame_count} - Warning: selected_lm shape is {selected_lm.shape}, expected (5, 3)")

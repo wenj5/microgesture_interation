@@ -34,10 +34,14 @@ def process_frame(image):
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
             mp_drawing.draw_landmarks(image_bgr, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-            all_transformed_lm = mapping.transform_coordinates(hand_landmarks.landmark)
+            all_transformed_lm, scale_factor = mapping.transform_coordinates(hand_landmarks.landmark)
+            print(hand_landmarks)
             selected_lm = all_transformed_lm[INDEX_LMN]
+            original_wrist = all_transformed_lm[0]
+
             print("selected_lm", selected_lm)
             print("\n")
+            
 
             if selected_lm.shape != (5, 3):
                 print(f"Warning: selected_lm shape is {selected_lm.shape}, expected (5, 3)")
@@ -50,10 +54,10 @@ def process_frame(image):
             if ukf_initialized:
                 measurement = selected_lm.flatten()
                 refined_landmarks = update_ukf(ukf, measurement)
+                detransformed_landmarks = mapping.detransform_coordinates(refined_landmarks, original_wrist, scale_factor)
                 print("refined landmarks:", refined_landmarks)
+                print("detransformed_landmarks:", detransformed_landmarks)
 
-    else:
-        print("no hand landmarks detected")
     
     return image_bgr
 
