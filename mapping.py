@@ -15,12 +15,27 @@ class map:
 
 # defination of values are the same as above
 # indirect mapping
-
     def IDI(Amax, Dmax, dti):
         r2 = Amax/Dmax
         a = (Dmax-dti)*r2
         return a
     
+
+class Landmark:
+    def __init__(self, x, y, z):
+        self.x = float(x)
+        self.y = float(y)
+        self.z = float(z)
+
+    def __str__(self):
+        return f"x: {self.x:.6f}, y: {self.y:.6f}, z: {self.z:.6f}"
+    
+    def __repr__(self):
+        return self.__str__()
+    
+    def HasField(self, field_name):
+        return hasattr(self, field_name)
+
 
 def transform_coordinates(landmarks):
     '''
@@ -36,25 +51,23 @@ def transform_coordinates(landmarks):
 
 
 def detransform_coordinates(refined_landmarks, original_wrist, scale_factor):
-
+    '''
+    Convert refined landmarks back to mediapipe landmarks format.
+    '''
+    # Ensure refined_landmarks is in the right shape
+    if len(refined_landmarks.shape) == 1:
+        refined_landmarks = refined_landmarks.reshape(-1, 3)
+    
     unscaled_landmarks = refined_landmarks / scale_factor
     original_format_landmarks = unscaled_landmarks + original_wrist
-
-    # convert them to mediapipe landmarks format
+    
+    # Converting
     mp_landmarks = []
     for landmark in original_format_landmarks:
         x, y, z = landmark
-        x = np.clip(float(x), 0.0, 1.0)
-        y = np.clip(float(y), 0.0, 1.0)
-        z = float(z)
-        mp_landmarks.append(type('Landmark', (), {
-            'x': x,
-            'y': y,
-            'z': z,
-        })())
-
+        mp_landmarks.append(Landmark(x, y, z))
+    
     return mp_landmarks
-
 
 
 def distance_cal(landmarks, j_id1, j_id2):

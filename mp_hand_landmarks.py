@@ -33,32 +33,51 @@ def process_frame(image):
     # Check if hand landmarks are detected
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
-            mp_drawing.draw_landmarks(image_bgr, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            # mp_drawing.draw_landmarks(image_bgr, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+            print("\nstarting hand landmark processing...")
+            print("getting transform_coordinates...")
             all_transformed_lm, scale_factor = mapping.transform_coordinates(hand_landmarks.landmark)
-            print(hand_landmarks)
+            print("Transform complete. Shapes:", 
+                          "\nall_transformed_lm:", all_transformed_lm.shape) 
+
             selected_lm = all_transformed_lm[INDEX_LMN]
-            original_wrist = all_transformed_lm[0]
-
-            print("selected_lm", selected_lm)
-            print("\n")
+            # original_wrist = all_transformed_lm[0]
+            print("selected_lm: ", selected_lm)
+            print("in shape of:", selected_lm.shape)
             
-
-            if selected_lm.shape != (5, 3):
-                print(f"Warning: selected_lm shape is {selected_lm.shape}, expected (5, 3)")
-                print(f"Selected landmarks: {selected_lm}")
-                return image_bgr
+            original_wrist = np.array([
+                hand_landmarks.landmark[0].x,
+                hand_landmarks.landmark[0].y,
+                hand_landmarks.landmark[0].z
+            ])
+            print(f"original wrist position: {original_wrist}")
 
             if not ukf_initialized:
+                print("initializing UKF...")
                 initialize_ukf_once(selected_lm)
 
             if ukf_initialized:
+                print("processing with UKF...")
                 measurement = selected_lm.flatten()
                 refined_landmarks = update_ukf(ukf, measurement)
+                print("refined_landmarks in shape of:", refined_landmarks.shape)
                 detransformed_landmarks = mapping.detransform_coordinates(refined_landmarks, original_wrist, scale_factor)
                 print("refined landmarks:", refined_landmarks)
-                print("detransformed_landmarks:", detransformed_landmarks)
+                
+                # draw original landmarks in blue
+                for i in range(len(INDEX_LMN)):
+                    lm = hand_landmarks.landmark[INDEX_LMN]
+                    x = int(lm.x * image.shape(1))
+                    y = int(lm.y * image.shape(0))
+                    cv2.circle(image_bgr, (x, y), 5, (255, 0, 0), -1)
 
-    
+                # draw refined landmarks in green
+                for i, lm in enumerate(detransformed_landmarks):
+                    x = int(lm.x * image.shape[1])
+                    y = int(lm.y * image.shape[0])
+                    cv2.circle(image_bgr, (x, y), 5, (0, 255, 0), -1)
+
+
     return image_bgr
 
 
