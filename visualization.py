@@ -45,6 +45,7 @@ class Vlz:
 
 
 # test code
+'''
 while True:
     visualizer = Vlz()
     for i in range(100):
@@ -60,9 +61,8 @@ while True:
         break # break whiletrue-loop
 
 visualizer.close_window()
-
-             
-
+         
+'''
 
 
 

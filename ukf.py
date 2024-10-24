@@ -13,12 +13,12 @@ def initialize_ukf(initial_finger_state, dt):
     initial_state = combined_state.flatten()
 
     # define sigma points
-    sigma_p = MerweScaledSigmaPoints(n= state_dim, alpha= 0.1, beta= 2., kappa= -1)
+    sigma_p = MerweScaledSigmaPoints(n= state_dim, alpha= 0.01, beta= 2., kappa= 0)
     ukf = UnscentedKalmanFilter(dim_x= state_dim, dim_z= num_landmark* 3, fx= fx, hx= hx, dt= dt, points= sigma_p)
     ukf.x = initial_state
     ukf.P *= 1
-    ukf.Q = np.eye(state_dim)* 0.01
-    ukf.R = np.eye(num_landmark* 3)* 0.1
+    ukf.Q = np.eye(state_dim)* 0.05  # process noise 
+    ukf.R = np.eye(num_landmark* 3)* 0.1  # measurement noise 
 
     return ukf
 
