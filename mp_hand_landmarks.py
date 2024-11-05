@@ -11,19 +11,21 @@ RING_LMN = [0, 13, 14, 15, 16]
 PINKY_LMN = [0, 17, 18, 19, 20]
 
 # Initialize variables for UKF
-ukf = None
-ukf_initialized = False
+ukf_thumb = None
+ukf_index = None
+ukf_thumb_initialized = False
+ukf_index_initialized = False
 fps = 30
 dt = 1 / fps
 
 def initialize_ukf_once(initial_landmarks):
-    global ukf, ukf_initialized
-    if not ukf_initialized:
-        ukf = initialize_ukf(initial_landmarks, dt)
-        ukf_initialized = True
+    # global ukf, ukf_initialized
+    #if not ukf_initialized:
+    ukf = initialize_ukf(initial_landmarks, dt)
+    return ukf, True
 
 def process_frame(image):
-    global ukf, ukf_initialized
+    global ukf_thumb, ukf_index, ukf_thumb_initialized, ukf_index_initialized
     
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
     results = hands.process(image_rgb)
@@ -32,7 +34,8 @@ def process_frame(image):
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
             all_transformed_lm, scale_factor = mapping.transform_coordinates(hand_landmarks.landmark)
-            selected_lm = all_transformed_lm[INDEX_LMN]
+            index_lm = all_transformed_lm[INDEX_LMN]
+            thumb_lm = all_transformed_lm[THUMB_LMN]
             
             original_wrist = np.array([
                 hand_landmarks.landmark[0].x,
@@ -40,14 +43,22 @@ def process_frame(image):
                 hand_landmarks.landmark[0].z
             ])
 
-            if not ukf_initialized:
-                initialize_ukf_once(selected_lm)
+            if not ukf_thumb_initialized:
+                ukf_thumb, ukf_thumb_initialized = initialize_ukf_once(thumb_lm)
 
-            if ukf_initialized:
-                measurement = selected_lm.flatten()
-                refined_landmarks = update_ukf(ukf, measurement)
-                detransformed_landmarks = mapping.detransform_coordinates(
-                    refined_landmarks, original_wrist, scale_factor)
+            if not ukf_index_initialized:
+                ukf_index, ukf_index_initialized = initialize_ukf_once(index_lm)
+
+            if ukf_thumb_initialized and ukf_index_initialized:
+                thumb_measurement = thumb_lm.flatten()
+                refined_thumb = update_ukf(ukf_thumb, thumb_measurement)
+                thumb_landmarks = mapping.detransform_coordinates(
+                    refined_thumb, original_wrist, scale_factor)
+                
+                index_measurement = index_lm.flatten()
+                refined_index = update_ukf(ukf_index, index_measurement)
+                index_landmarks = mapping.detransform_coordinates(
+                    refined_index, original_wrist, scale_factor)
                 
 
                 # Draw original landmarks in blue
@@ -56,15 +67,28 @@ def process_frame(image):
                     x = int(lm.x * image.shape[1])
                     y = int(lm.y * image.shape[0])
                     cv2.circle(image_bgr, (x, y), 5, (255, 0, 0), -1) 
-                    
 
-                # Draw refined landmarks in green
-                for i, lm in enumerate(detransformed_landmarks):
+                    lm = hand_landmarks.landmark[THUMB_LMN[i]]
                     x = int(lm.x * image.shape[1])
                     y = int(lm.y * image.shape[0])
-                    cv2.circle(image_bgr, (x, y), 5, (0, 255, 0), -1)  
-                    cv2.putText(image_bgr, f"R{i}", (x+10, y+10), 
+                    cv2.circle(image_bgr, (x, y), 5, (255, 0, 0), -1)
+                    
+
+
+                # Draw refined landmarks in green
+                for i, lm in enumerate(thumb_landmarks):
+                    x_t = int(lm.x * image.shape[1])
+                    y_t = int(lm.y * image.shape[0])
+                    cv2.circle(image_bgr, (x_t, y_t), 5, (0, 255, 0), -1)  
+                    cv2.putText(image_bgr, f"T{i}", (x_t+10, y_t+10), 
                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                
+                for i, lm in enumerate(index_landmarks):
+                    x_i = int(lm.x * image.shape[1])
+                    y_i = int(lm.y * image.shape[0])
+                    cv2.circle(image_bgr, (x_i, y_i), 5, (0, 255, 0), -1)
+                    cv2.putText(image_bgr, f"I{i}", (x_i+10, y_i+10), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return image_bgr
 
