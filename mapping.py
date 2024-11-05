@@ -70,13 +70,6 @@ def detransform_coordinates(refined_landmarks, original_wrist, scale_factor):
     return mp_landmarks
 
 
-def distance_cal(landmarks, j_id1, j_id2):
-
-    Ttip = (landmarks[j_id1] + landmarks[(j_id1-1)])/ 2
-    Itip = (landmarks[j_id2] + landmarks[(j_id2-1)])/ 2
-    distance = np.linalg.norm(Ttip - Itip)
-
-    return distance
 
 
 

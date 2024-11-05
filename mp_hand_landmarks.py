@@ -3,6 +3,8 @@ import mediapipe as mp
 import mapping
 import numpy as np
 from ukf import initialize_ukf, update_ukf
+import s_send
+import queue
 
 INDEX_LMN = [0, 5, 6, 7, 8]
 THUMB_LMN = [0, 1, 2, 3, 4]
@@ -52,14 +54,23 @@ def process_frame(image):
             if ukf_thumb_initialized and ukf_index_initialized:
                 thumb_measurement = thumb_lm.flatten()
                 refined_thumb = update_ukf(ukf_thumb, thumb_measurement)
+                #print(refined_thumb, "in shape of: ", refined_thumb.shape)
+                #print(refined_thumb[4])
                 thumb_landmarks = mapping.detransform_coordinates(
                     refined_thumb, original_wrist, scale_factor)
                 
                 index_measurement = index_lm.flatten()
                 refined_index = update_ukf(ukf_index, index_measurement)
+                #print(refined_index, "in shape of:", refined_index.shape)
+                #print(refined_index[4])
                 index_landmarks = mapping.detransform_coordinates(
                     refined_index, original_wrist, scale_factor)
                 
+                thumb_np = np.array(refined_thumb[4])
+                index_np = np.array(refined_index[4])
+                distance = np.linalg.norm(thumb_np - index_np)
+                print(thumb_np, index_np, distance*10)
+
 
                 # Draw original landmarks in blue
                 for i in range(len(INDEX_LMN)):
