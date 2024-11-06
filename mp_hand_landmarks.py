@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 import mapping
+from visualization import Vlz
 import numpy as np
 from ukf import initialize_ukf, update_ukf
 import s_send
@@ -19,6 +20,8 @@ ukf_thumb_initialized = False
 ukf_index_initialized = False
 fps = 30
 dt = 1 / fps
+
+visualizer = Vlz()
 
 def initialize_ukf_once(initial_landmarks):
     # global ukf, ukf_initialized
@@ -70,6 +73,8 @@ def process_frame(image):
                 index_np = np.array(refined_index[4])
                 distance = np.linalg.norm(thumb_np - index_np)
                 print(thumb_np, index_np, distance*10)
+
+                visualizer.updata_image(distance)
 
 
                 # Draw original landmarks in blue
@@ -124,9 +129,13 @@ while cap.isOpened():
     image = process_frame(image)
     image = cv2.flip(image, 1)
     cv2.imshow('MediaPipe Hands', image)
-    
+
+    #visualizer = visualization.Vlz()
+    #visualizer.updata_image(distance)
+
     if cv2.waitKey(5) & 0xFF == 27:  # Press 'ESC' to exit
         break
 
 cap.release()
 cv2.destroyAllWindows()
+visualizer.close_window()
