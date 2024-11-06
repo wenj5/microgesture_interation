@@ -1,5 +1,5 @@
 import socket
-
+import keyboard
 
 def send_data():
     # set up the client to send sada to esp32
@@ -8,4 +8,15 @@ def send_data():
     port_file = 12347
     s_esp32.connect((host_file, port_file))
 
-    return(print("connected to esp32"))
+    return s_esp32
+
+
+while True:
+    data_for_esp32 = 123
+    s_esp32 = send_data()
+    s_esp32.sendall(f"{data_for_esp32}\n".encode('utf-8'))
+
+    if keyboard.is_pressed("esc"):
+        break
+
+s_esp32.close()
