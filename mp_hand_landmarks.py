@@ -4,7 +4,7 @@ import mapping
 from visualization import Vlz
 import numpy as np
 from ukf import initialize_ukf, update_ukf
-import s_send
+from s_send import connect_to_esp32
 import queue
 
 INDEX_LMN = [0, 5, 6, 7, 8]
@@ -20,6 +20,8 @@ ukf_thumb_initialized = False
 ukf_index_initialized = False
 fps = 30
 dt = 1 / fps
+# queue for thread-safe data sharing
+data_queue = queue.Queue()
 
 visualizer = Vlz()
 
@@ -69,11 +71,15 @@ def process_frame(image):
                 index_landmarks = mapping.detransform_coordinates(
                     refined_index, original_wrist, scale_factor)
                 
+                # distance calculation
                 thumb_np = np.array(refined_thumb[4])
                 index_np = np.array(refined_index[4])
-                distance = np.linalg.norm(thumb_np - index_np)
-                print(thumb_np, index_np, distance*10)
+                distance = int(np.linalg.norm(thumb_np - index_np)*10)
+                print(thumb_np, index_np, distance)
 
+                data_prep = f"{distance}\n" #apppend a newline character for separation
+                data_queue.put(data_prep)
+                data_esp = data_queue.get()
                 visualizer.updata_image(distance)
 
 
@@ -116,10 +122,16 @@ hands = mp_hands.Hands(
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5)
 mp_drawing = mp.solutions.drawing_utils
+# esp32 connection
+ESP32_IP = '192.168.11.5'
+ESP32_PORT = 12347
+esp32 = connect_to_esp32(ESP32_IP, ESP32_PORT)
+if not esp32:
+    print("Couldn't connect")
+    
 
 # Initialize video capture
 cap = cv2.VideoCapture(0)
-
 
 while cap.isOpened():
     success, image = cap.read()
@@ -130,8 +142,8 @@ while cap.isOpened():
     image = cv2.flip(image, 1)
     cv2.imshow('MediaPipe Hands', image)
 
-    #visualizer = visualization.Vlz()
-    #visualizer.updata_image(distance)
+    
+    
 
     if cv2.waitKey(5) & 0xFF == 27:  # Press 'ESC' to exit
         break
