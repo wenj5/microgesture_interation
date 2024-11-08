@@ -36,6 +36,8 @@ def connect_to_esp32(host, port, max_retries= 3):
     
     return None
 
+
+
 def main():
     ESP32_IP = '192.168.11.5'
     ESP32_PORT = 12347
@@ -70,5 +72,4 @@ def main():
 '''
 if __name__ == "__main__":
     main()
-
 '''

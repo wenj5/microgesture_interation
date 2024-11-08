@@ -1,3 +1,4 @@
+import socket
 import cv2
 import mediapipe as mp
 import mapping
@@ -5,7 +6,8 @@ from visualization import Vlz
 import numpy as np
 from ukf import initialize_ukf, update_ukf
 from s_send import connect_to_esp32
-import queue
+import time
+
 
 INDEX_LMN = [0, 5, 6, 7, 8]
 THUMB_LMN = [0, 1, 2, 3, 4]
@@ -20,10 +22,7 @@ ukf_thumb_initialized = False
 ukf_index_initialized = False
 fps = 30
 dt = 1 / fps
-# queue for thread-safe data sharing
-data_queue = queue.Queue()
 
-visualizer = Vlz()
 
 def initialize_ukf_once(initial_landmarks):
     # global ukf, ukf_initialized
@@ -31,7 +30,7 @@ def initialize_ukf_once(initial_landmarks):
     ukf = initialize_ukf(initial_landmarks, dt)
     return ukf, True
 
-def process_frame(image):
+def process_frame(image, esp32, visualizer):
     global ukf_thumb, ukf_index, ukf_thumb_initialized, ukf_index_initialized
     
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
@@ -71,18 +70,24 @@ def process_frame(image):
                 index_landmarks = mapping.detransform_coordinates(
                     refined_index, original_wrist, scale_factor)
                 
-                # distance calculation
+                # distance calculation and sending data to esp32
                 thumb_np = np.array(refined_thumb[4])
                 index_np = np.array(refined_index[4])
                 distance = int(np.linalg.norm(thumb_np - index_np)*10)
                 print(thumb_np, index_np, distance)
+                try:
+                    if esp32:
+                        data_to_send = f"{distance}\n"
+                        esp32.sendall(data_to_send.encode('utf-8'))
+                        print(f"send distance: {distance}")
 
-                data_prep = f"{distance}\n" #apppend a newline character for separation
-                data_queue.put(data_prep)
-                data_esp = data_queue.get()
-                visualizer.updata_image(distance)
+                    visualizer.updata_image(distance)
+                    
+                except socket.error as e:
+                    print(f"failed to send data: {e}")
+                    return image_bgr
 
-
+ 
                 # Draw original landmarks in blue
                 for i in range(len(INDEX_LMN)):
                     lm = hand_landmarks.landmark[INDEX_LMN[i]]
@@ -114,40 +119,59 @@ def process_frame(image):
 
     return image_bgr
 
+
+def main():
+    ESP32_IP = '192.168.11.5'
+    ESP32_PORT = 12347
+    esp32 = connect_to_esp32(ESP32_IP, ESP32_PORT)
+    if not esp32:
+        print("Couldn't connect")
+        return
+    
+    # vlz for distance
+    visualizer = Vlz()
+    # Initialize video capture
+    cap = cv2.VideoCapture(0)
+    try:
+        while cap.isOpened():
+            success, image = cap.read()
+            if not success:
+                continue
+            
+            image = process_frame(image, esp32, visualizer)
+            image = cv2.flip(image, 1)
+            cv2.imshow('hand', image)
+
+            if cv2.waitKey(5) & 0xFF == 27:
+                print("esc pressed - exiting")
+                break
+
+            time.sleep(0.01)
+
+    except Exception as e:
+        print(f"Error in main loop: {e}")
+        
+    finally:
+        print("clean up")
+        if esp32:
+            esp32.close()
+            print("esp32 connection cloesd")
+        cap.release()
+        cv2.destroyAllWindows()
+        visualizer.close_window()
+
+if __name__ == "__main__":
 # Initialize MediaPipe Hands
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(
-    static_image_mode=False,
-    max_num_hands=1,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5)
-mp_drawing = mp.solutions.drawing_utils
-# esp32 connection
-ESP32_IP = '192.168.11.5'
-ESP32_PORT = 12347
-esp32 = connect_to_esp32(ESP32_IP, ESP32_PORT)
-if not esp32:
-    print("Couldn't connect")
-    
-
-# Initialize video capture
-cap = cv2.VideoCapture(0)
-
-while cap.isOpened():
-    success, image = cap.read()
-    if not success:
-        continue
-
-    image = process_frame(image)
-    image = cv2.flip(image, 1)
-    cv2.imshow('MediaPipe Hands', image)
+    mp_hands = mp.solutions.hands
+    hands = mp_hands.Hands(
+        static_image_mode=False,
+        max_num_hands=1,
+        min_detection_confidence=0.5,
+        min_tracking_confidence=0.5)
+    mp_drawing = mp.solutions.drawing_utils
+    main()
 
     
-    
 
-    if cv2.waitKey(5) & 0xFF == 27:  # Press 'ESC' to exit
-        break
 
-cap.release()
-cv2.destroyAllWindows()
-visualizer.close_window()
+
