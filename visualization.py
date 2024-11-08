@@ -4,7 +4,7 @@ import time
 
 
 class Vlz:
-    def __init__(self, w_name = 'visualz', width = 640, height = 480, max_distance = 2.0, history_length = 50):
+    def __init__(self, w_name = 'visualz', width = 640, height = 480, max_distance = 15.0, history_length = 50):
         self.window_name = w_name
         self.width = width
         self.height = height
