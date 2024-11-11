@@ -121,7 +121,7 @@ def process_frame(image, esp32, visualizer):
 
 
 def main():
-    ESP32_IP = '192.168.11.5'
+    ESP32_IP = '192.168.11.18' # need to change the address everyone wanna connect, address varies
     ESP32_PORT = 12347
     esp32 = connect_to_esp32(ESP32_IP, ESP32_PORT)
     if not esp32:
