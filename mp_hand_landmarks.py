@@ -18,8 +18,12 @@ PINKY_LMN = [0, 17, 18, 19, 20]
 # Initialize variables for UKF
 ukf_thumb = None
 ukf_index = None
+ukf_middle = None
+ukf_ring = None
 ukf_thumb_initialized = False
 ukf_index_initialized = False
+ukf_middle_initialized = False
+ukf_ring_initialized = False
 fps = 30
 dt = 1 / fps
 
@@ -31,7 +35,8 @@ def initialize_ukf_once(initial_landmarks):
     return ukf, True
 
 def process_frame(image, esp32, visualizer):
-    global ukf_thumb, ukf_index, ukf_thumb_initialized, ukf_index_initialized
+    global ukf_thumb, ukf_index, ukf_middle, ukf_ring
+    global ukf_thumb_initialized, ukf_index_initialized, ukf_middle_initialized, ukf_ring_initialized
     
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
     results = hands.process(image_rgb)
@@ -42,6 +47,8 @@ def process_frame(image, esp32, visualizer):
             all_transformed_lm, scale_factor = mapping.transform_coordinates(hand_landmarks.landmark)
             index_lm = all_transformed_lm[INDEX_LMN]
             thumb_lm = all_transformed_lm[THUMB_LMN]
+            middle_lm = all_transformed_lm[MIDDLE_LMN]
+            ring_lm = all_transformed_lm[RING_LMN]
             
             original_wrist = np.array([
                 hand_landmarks.landmark[0].x,
@@ -54,27 +61,51 @@ def process_frame(image, esp32, visualizer):
 
             if not ukf_index_initialized:
                 ukf_index, ukf_index_initialized = initialize_ukf_once(index_lm)
+            
+            if not ukf_middle_initialized:
+                ukf_middle, ukf_middle_initialized = initialize_ukf_once(middle_lm)
+
+            if not ukf_ring_initialized:
+                ukf_ring, ukf_ring_initialized = initialize_ukf_once(ring_lm)
 
             if ukf_thumb_initialized and ukf_index_initialized:
+                # refine the landmarks of fingers
                 thumb_measurement = thumb_lm.flatten()
                 refined_thumb = update_ukf(ukf_thumb, thumb_measurement)
                 #print(refined_thumb, "in shape of: ", refined_thumb.shape)
                 #print(refined_thumb[4])
                 thumb_landmarks = mapping.detransform_coordinates(
-                    refined_thumb, original_wrist, scale_factor)
+                    refined_thumb, original_wrist, scale_factor
+                )
                 
                 index_measurement = index_lm.flatten()
                 refined_index = update_ukf(ukf_index, index_measurement)
                 #print(refined_index, "in shape of:", refined_index.shape)
                 #print(refined_index[4])
                 index_landmarks = mapping.detransform_coordinates(
-                    refined_index, original_wrist, scale_factor)
+                    refined_index, original_wrist, scale_factor
+                )
                 
-                # distance calculation and sending data to esp32
+                middle_measurement = middle_lm.flatten()
+                refined_middle = update_ukf(ukf_middle, middle_measurement)
+                middle_landmarks = mapping.detransform_coordinates(
+                    refined_middle, original_wrist, scale_factor
+                )
+                
+                ring_measurement = ring_lm.flatten()
+                refined_ring = update_ukf(ukf_ring, ring_measurement)
+                ring_landmarks = mapping.detransform_coordinates(
+                    refined_ring, original_wrist, scale_factor
+                )
+                
+                
+                # distance calculation and sending data to esp32, get the landmark of tips first
                 thumb_np = np.array(refined_thumb[4])
                 index_np = np.array(refined_index[4])
-                distance = int(np.linalg.norm(thumb_np - index_np)*10)
-                print(thumb_np, index_np, distance)
+                middle_np = np.array(refined_middle[4])
+                ring_np = np.array(refined_ring[4])
+                distance = int(np.linalg.norm(thumb_np - middle_np)*10)
+                print(thumb_np, middle_np, distance)
                 try:
                     if esp32:
                         data_to_send = f"{distance}\n"
@@ -89,8 +120,8 @@ def process_frame(image, esp32, visualizer):
 
  
                 # Draw original landmarks in blue
-                for i in range(len(INDEX_LMN)):
-                    lm = hand_landmarks.landmark[INDEX_LMN[i]]
+                for i in range(len(MIDDLE_LMN)):
+                    lm = hand_landmarks.landmark[MIDDLE_LMN[i]]
                     x = int(lm.x * image.shape[1])
                     y = int(lm.y * image.shape[0])
                     cv2.circle(image_bgr, (x, y), 5, (255, 0, 0), -1) 
@@ -110,11 +141,11 @@ def process_frame(image, esp32, visualizer):
                     cv2.putText(image_bgr, f"T{i}", (x_t+10, y_t+10), 
                               cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
                 
-                for i, lm in enumerate(index_landmarks):
+                for i, lm in enumerate(middle_landmarks):
                     x_i = int(lm.x * image.shape[1])
                     y_i = int(lm.y * image.shape[0])
                     cv2.circle(image_bgr, (x_i, y_i), 5, (0, 255, 0), -1)
-                    cv2.putText(image_bgr, f"I{i}", (x_i+10, y_i+10), 
+                    cv2.putText(image_bgr, f"M{i}", (x_i+10, y_i+10), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return image_bgr
