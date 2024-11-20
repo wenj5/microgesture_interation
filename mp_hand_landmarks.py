@@ -104,15 +104,17 @@ def process_frame(image, esp32, visualizer):
                 index_np = np.array(refined_index[4])
                 middle_np = np.array(refined_middle[4])
                 ring_np = np.array(refined_ring[4])
-                distance = int(np.linalg.norm(thumb_np - middle_np)*10)
-                print(thumb_np, middle_np, distance)
+                distance_0 = int(np.linalg.norm(thumb_np - middle_np)*10)
+                distance_1 = int(np.linalg.norm(thumb_np - index_np)*10)
+                distance_2 = int(np.linalg.norm(thumb_np - ring_np)*10)
+                print(thumb_np, middle_np, distance_0)
                 try:
                     if esp32:
-                        data_to_send = f"{distance}\n"
+                        data_to_send = f"{distance_0}\n"
                         esp32.sendall(data_to_send.encode('utf-8'))
-                        print(f"send distance: {distance}")
+                        print(f"send distance: {distance_0}")
 
-                    visualizer.updata_image(distance)
+                    visualizer.updata_image(distance_0)
                     
                 except socket.error as e:
                     print(f"failed to send data: {e}")
