@@ -5,7 +5,7 @@ import mapping
 from visualization import Vlz
 import numpy as np
 from ukf import initialize_ukf, update_ukf
-from s_send import connect_to_esp32
+from s_send import connect_to_esp32, send_data_esp32
 import time
 
 
@@ -37,7 +37,9 @@ def initialize_ukf_once(initial_landmarks):
 def process_frame(image, esp32, visualizer):
     global ukf_thumb, ukf_index, ukf_middle, ukf_ring
     global ukf_thumb_initialized, ukf_index_initialized, ukf_middle_initialized, ukf_ring_initialized
-    
+    ESP32_IP = '192.168.11.18' # need to change the address everyone wanna connect, address varies
+    ESP32_PORT = 12347
+
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
     results = hands.process(image_rgb)
     image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
@@ -110,9 +112,20 @@ def process_frame(image, esp32, visualizer):
                 print(thumb_np, middle_np, distance_0)
                 try:
                     if esp32:
-                        data_to_send = f"{distance_0}\n"
-                        esp32.sendall(data_to_send.encode('utf-8'))
-                        print(f"send distance: {distance_0}")
+                        if not send_data_esp32(esp32, [distance_0, distance_1, distance_2]):
+                            print("attempting to reconnect... ")
+                            new_esp32 = connect_to_esp32(ESP32_IP, ESP32_PORT)
+                            if new_esp32:
+                                esp32 = new_esp32
+                                send_data_esp32(esp32, [distance_0, distance_1, distance_2])
+
+                        distances = f"{distance_0}, {distance_1}, {distance_2}\n"
+                        # data_to_send = f"{distance_0}\n"
+                        esp32.sendall(distances.encode('utf-8'))
+                        print(f"send distance: {distances}")
+                        time.sleep(0.05)
+
+                        esp32.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
                     visualizer.updata_image(distance_0)
                     
@@ -150,7 +163,7 @@ def process_frame(image, esp32, visualizer):
                     cv2.putText(image_bgr, f"M{i}", (x_i+10, y_i+10), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-    return image_bgr
+    return image_bgr, esp32
 
 
 def main():
@@ -171,7 +184,7 @@ def main():
             if not success:
                 continue
             
-            image = process_frame(image, esp32, visualizer)
+            image, esp32 = process_frame(image, esp32, visualizer)
             image = cv2.flip(image, 1)
             cv2.imshow('hand', image)
 
@@ -202,6 +215,8 @@ if __name__ == "__main__":
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5)
     mp_drawing = mp.solutions.drawing_utils
+    ESP32_IP = '192.168.11.18' # need to change the address everyone wanna connect, address varies
+    ESP32_PORT = 12347
     main()
 
     

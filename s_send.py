@@ -33,8 +33,21 @@ def connect_to_esp32(host, port, max_retries= 3):
             if attempt < max_retries - 1:
                 print("Retrying in 2 seconds...")
                 time.sleep(2)
+            sock.close()
     
     return None
+
+def send_data_esp32(esp32, distances):
+    try:
+        data = f"{distances[0]},{distances[1]},{distances[2]}\n"
+        esp32.sendall(data.encode('utf-8'))
+        print(f"send distances: {data.strip()}")
+        return True
+    
+    except socket.error as e:
+        print(f"failf to send the data:{e}")
+        return False
+
 
 
 
