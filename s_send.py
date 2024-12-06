@@ -39,7 +39,7 @@ def connect_to_esp32(host, port, max_retries= 3):
 
 def send_data_esp32(esp32, distances):
     try:
-        data = f"{distances[0]},{distances[1]},{distances[2]}\n"
+        data = f"{distances[0]},{distances[1]},{distances[2]},{distances[3]}\n"
         esp32.sendall(data.encode('utf-8'))
         print(f"send distances: {data.strip()}")
         return True

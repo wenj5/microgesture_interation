@@ -76,6 +76,7 @@ def process_frame(image, esp32, visualizer):
                 refined_thumb = update_ukf(ukf_thumb, thumb_measurement)
                 #print(refined_thumb, "in shape of: ", refined_thumb.shape)
                 #print(refined_thumb[4])
+                # detransformed lanmarks only for drawing
                 thumb_landmarks = mapping.detransform_coordinates(
                     refined_thumb, original_wrist, scale_factor
                 )
@@ -84,9 +85,7 @@ def process_frame(image, esp32, visualizer):
                 refined_index = update_ukf(ukf_index, index_measurement)
                 #print(refined_index, "in shape of:", refined_index.shape)
                 #print(refined_index[4])
-                index_landmarks = mapping.detransform_coordinates(
-                    refined_index, original_wrist, scale_factor
-                )
+                
                 
                 middle_measurement = middle_lm.flatten()
                 refined_middle = update_ukf(ukf_middle, middle_measurement)
@@ -96,30 +95,27 @@ def process_frame(image, esp32, visualizer):
                 
                 ring_measurement = ring_lm.flatten()
                 refined_ring = update_ukf(ukf_ring, ring_measurement)
-                ring_landmarks = mapping.detransform_coordinates(
-                    refined_ring, original_wrist, scale_factor
-                )
-                
                 
                 # distance calculation and sending data to esp32, get the landmark of tips first
                 thumb_np = np.array(refined_thumb[4])
                 index_np = np.array(refined_index[4])
                 middle_np = np.array(refined_middle[4])
                 ring_np = np.array(refined_ring[4])
-                distance_0 = int(np.linalg.norm(thumb_np - middle_np)*10)
-                distance_1 = int(np.linalg.norm(thumb_np - index_np)*10)
+                distance_1 = int(np.linalg.norm(thumb_np - middle_np)*10)
+                distance_0 = int(np.linalg.norm(thumb_np - index_np)*10)
                 distance_2 = int(np.linalg.norm(thumb_np - ring_np)*10)
-                print(thumb_np, middle_np, distance_0)
+                distance_3 = int(np.linalg.norm(index_np - ring_np)*10)
+                # print(thumb_np, middle_np, distance_0)
                 try:
                     if esp32:
-                        if not send_data_esp32(esp32, [distance_0, distance_1, distance_2]):
+                        if not send_data_esp32(esp32, [distance_0, distance_1, distance_2, distance_3]):
                             print("attempting to reconnect... ")
                             new_esp32 = connect_to_esp32(ESP32_IP, ESP32_PORT)
                             if new_esp32:
                                 esp32 = new_esp32
-                                send_data_esp32(esp32, [distance_0, distance_1, distance_2])
+                                send_data_esp32(esp32, [distance_0, distance_1, distance_2, distance_3])
 
-                        distances = f"{distance_0}, {distance_1}, {distance_2}\n"
+                        distances = f"{distance_0}, {distance_1}, {distance_2}, {distance_3}\n"
                         # data_to_send = f"{distance_0}\n"
                         esp32.sendall(distances.encode('utf-8'))
                         print(f"send distance: {distances}")
@@ -167,7 +163,7 @@ def process_frame(image, esp32, visualizer):
 
 
 def main():
-    ESP32_IP = '192.168.11.18' # need to change the address everyone wanna connect, address varies
+    ESP32_IP = '192.168.11.15' # need to change the address everyone wanna connect, address varies
     ESP32_PORT = 12347
     esp32 = connect_to_esp32(ESP32_IP, ESP32_PORT)
     if not esp32:
