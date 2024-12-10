@@ -2,6 +2,26 @@ import cv2
 import numpy as np
 import time
 
+def Move(distance_0, distance_1, distance_2, distance_3):
+    if distance_3 == 0:
+        movement = "backward"
+    else:
+        if distance_1 > 3:
+            if distance_0 <= 2 and distance_2 > 3:
+                movement = "forward_right"
+            elif distance_0 > 3 and distance_2 <= 2:
+                movement = "forward_left"
+            else:
+                movement = "forward"
+        elif distance_0 < 2 and distance_2 > 3:
+            movement = "right"
+        elif distance_0 > 3 and distance_2 < 2:
+            movement = "left"
+        else:
+            movement = "stop"
+
+    return movement
+
 
 class Vlz:
     def __init__(self, w_name = 'visualz', width = 640, height = 480, max_distance = 15.0, history_length = 50):

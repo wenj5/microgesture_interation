@@ -2,7 +2,7 @@ import socket
 import cv2
 import mediapipe as mp
 import mapping
-from visualization import Vlz
+from visualization import Move
 import numpy as np
 from ukf import initialize_ukf, update_ukf
 from s_send import connect_to_esp32, send_data_esp32
@@ -34,15 +34,16 @@ def initialize_ukf_once(initial_landmarks):
     ukf = initialize_ukf(initial_landmarks, dt)
     return ukf, True
 
-def process_frame(image, esp32, visualizer):
+def process_frame(image, esp32):
     global ukf_thumb, ukf_index, ukf_middle, ukf_ring
     global ukf_thumb_initialized, ukf_index_initialized, ukf_middle_initialized, ukf_ring_initialized
-    ESP32_IP = '192.168.11.18' # need to change the address everyone wanna connect, address varies
+    ESP32_IP = '192.168.11.15' # need to change the address everyone wanna connect, address varies
     ESP32_PORT = 12347
 
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
     results = hands.process(image_rgb)
     image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
+   
 
     if results.multi_hand_landmarks:
         for hand_landmarks in results.multi_hand_landmarks:
@@ -123,11 +124,28 @@ def process_frame(image, esp32, visualizer):
 
                         esp32.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-                    visualizer.updata_image(distance_0)
+                    # visualizer.updata_image(distance_0)
                     
                 except socket.error as e:
                     print(f"failed to send data: {e}")
                     return image_bgr
+
+                # distance visualizing interface drawing x*y = 640* 480
+                x_base_0 = 560  # 640 -80
+                y_base_0 = 460   # 480 - 20
+                gap = 20
+
+                cv2.line(image_bgr, (x_base_0-10, y_base_0-24), (x_base_0+ gap*2+10, y_base_0-24), (82, 23, 68), 2)
+                cv2.line(image_bgr, (x_base_0, y_base_0), (x_base_0, 480), (51, 24, 27), 5)
+                cv2.line(image_bgr, (x_base_0+ gap, y_base_0), (x_base_0+ gap, 480), (51, 24, 27), 5)
+                cv2.line(image_bgr, (x_base_0+ gap*2, y_base_0), (x_base_0+ gap*2, 480), (51, 24, 27), 5)
+
+                cv2.line(image_bgr, (x_base_0+ gap*2, y_base_0+1), (x_base_0+ gap*2, max(y_base_0-distance_0*8, 380)), (89, 68, 171), 3)
+                cv2.line(image_bgr, (x_base_0+ gap, y_base_0), (x_base_0+ gap, max(y_base_0- distance_1*8, 380)), (89, 68, 171), 3)
+                cv2.line(image_bgr, (x_base_0, y_base_0), (x_base_0, max(y_base_0- distance_2*8, 380)), (89, 68, 171), 3)
+                if distance_3 == 0:
+                    cv2.rectangle(image_bgr, (x_base_0, 373), (x_base_0+ gap*2, 368), (88, 159, 242), 3)
+
 
  
                 # Draw original landmarks in blue
@@ -171,7 +189,7 @@ def main():
         return
     
     # vlz for distance
-    visualizer = Vlz()
+    # visualizer = Vlz()
     # Initialize video capture
     cap = cv2.VideoCapture(0)
     try:
@@ -180,7 +198,7 @@ def main():
             if not success:
                 continue
             
-            image, esp32 = process_frame(image, esp32, visualizer)
+            image, esp32 = process_frame(image, esp32)
             image = cv2.flip(image, 1)
             cv2.imshow('hand', image)
 
@@ -200,7 +218,7 @@ def main():
             print("esp32 connection cloesd")
         cap.release()
         cv2.destroyAllWindows()
-        visualizer.close_window()
+        # visualizer.close_window()
 
 if __name__ == "__main__":
 # Initialize MediaPipe Hands
@@ -211,8 +229,8 @@ if __name__ == "__main__":
         min_detection_confidence=0.5,
         min_tracking_confidence=0.5)
     mp_drawing = mp.solutions.drawing_utils
-    ESP32_IP = '192.168.11.18' # need to change the address everyone wanna connect, address varies
-    ESP32_PORT = 12347
+    #ESP32_IP = '192.168.11.18' # need to change the address everyone wanna connect, address varies
+    #ESP32_PORT = 12347
     main()
 
     
