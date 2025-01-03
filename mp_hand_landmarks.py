@@ -27,7 +27,6 @@ ukf_ring_initialized = False
 fps = 30
 dt = 1 / fps
 
-
 def initialize_ukf_once(initial_landmarks):
     # global ukf, ukf_initialized
     #if not ukf_initialized:
@@ -37,7 +36,7 @@ def initialize_ukf_once(initial_landmarks):
 def process_frame(image, esp32):
     global ukf_thumb, ukf_index, ukf_middle, ukf_ring
     global ukf_thumb_initialized, ukf_index_initialized, ukf_middle_initialized, ukf_ring_initialized
-    ESP32_IP = '192.168.11.15' # need to change the address everyone wanna connect, address varies
+    ESP32_IP = '192.168.11.2' # need to change the address everyone wanna connect, address varies
     ESP32_PORT = 12347
 
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)    
@@ -181,7 +180,7 @@ def process_frame(image, esp32):
 
 
 def main():
-    ESP32_IP = '192.168.11.15' # need to change the address everyone wanna connect, address varies
+    ESP32_IP = '192.168.11.2' # need to change the address everyone wanna connect, address varies
     ESP32_PORT = 12347
     esp32 = connect_to_esp32(ESP32_IP, ESP32_PORT)
     if not esp32:
